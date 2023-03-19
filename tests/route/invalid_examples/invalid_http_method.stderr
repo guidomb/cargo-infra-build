@@ -1,0 +1,19 @@
+error: Invalid HTTP method 'FOO'. Valid HTTP method values are GET, POST, PUT, DELETE, HEAD or OPTIONS
+ --> tests/route/invalid_examples/invalid_http_method.rs:5:9
+  |
+5 | #[route(FOO, "/")]
+  |         ^^^
+
+warning: unused import: `lambda_http::Error`
+ --> tests/route/invalid_examples/invalid_http_method.rs:2:5
+  |
+2 | use lambda_http::Error;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0601]: `main` function not found in crate `$CRATE`
+ --> tests/route/invalid_examples/invalid_http_method.rs:8:2
+  |
+8 | }
+  |  ^ consider adding a `main` function to `$DIR/tests/route/invalid_examples/invalid_http_method.rs`

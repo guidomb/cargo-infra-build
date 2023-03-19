@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use std::string::ToString;
 use strum::IntoEnumIterator;
 use strum_macros::{Display, EnumIter, EnumString};
-use syn::{self, parse_macro_input, AttributeArgs, ItemFn, Lit, Meta, NestedMeta};
+use syn::{parse::Parse, parse_macro_input, ItemFn, LitStr};
 
 #[derive(Debug)]
 struct RouteMapping {
@@ -64,39 +64,42 @@ impl syn::parse::Parse for HttpMethod {
     }
 }
 
+struct RouteMacroArgs {
+    http_method: HttpMethod,
+    path: String,
+}
+
+impl Parse for RouteMacroArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let http_method: HttpMethod = input.parse()?;
+        let _: syn::Token![,] = input.parse().map_err(|e| {
+            syn::Error::new(input.span(), format!("{e}. Route attribute requires 2 arguments. Expecting second argument to be the route path. e.g: #[route({}, \"/some/path\")]", http_method.to_string()))
+        })?;
+        let path_node: LitStr = input.parse()?;
+
+        if !input.is_empty() {
+            return Err(syn::Error::new(input.span(), "route attribute required 2 arguments but there still are tokens left to be parsed. First argument should be an HTTP method and the second one URL path"));
+        }
+
+        Ok(RouteMacroArgs {
+            http_method,
+            path: path_node.value(),
+        })
+    }
+}
+
 #[proc_macro_attribute]
 pub fn route(attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Parse the input tokens into syntax tree
-    let args = parse_macro_input!(attr as AttributeArgs);
     let func = parse_macro_input!(item as ItemFn);
+    let RouteMacroArgs { http_method, path } = parse_macro_input!(attr as RouteMacroArgs);
 
-    if args.len() != 2 {
-        panic!("route attribute required 2 arguments and {} where provided. First argument should be an HTTP method and the second one URL path", args.len());
-    }
-
-    // Extract the HTTP method from the attribute arguments
-    let Some(NestedMeta::Meta(Meta::Path(path_token))) = args.get(0) else {
-        panic!(
-            "Expected HttpMethod as the first argument. Valid HTTP method values are {}",
-            HttpMethod::stringified_all()
-        );
-    };
-    let mut http_method_token_stream = proc_macro2::TokenStream::new();
-    path_token.to_tokens(&mut http_method_token_stream);
-    let http_method =
-        syn::parse2::<HttpMethod>(http_method_token_stream).unwrap_or_else(|e| panic!("{e}"));
-
-    // Extract the route path from the attribute arguments
-    let Some(NestedMeta::Lit(Lit::Str(route_str))) = args.get(1) else {
-        panic!("Expected route path string as the second argument");
-    };
+    // TODO parse item function an validate that only the main function is annotated
 
     let route_mapping = RouteMapping {
         method: http_method,
-        path: route_str.value(),
+        path,
         handler_name: "".into(),
     };
-    println!("{route_mapping:#?}");
 
     TokenStream::from(quote! {
         #func

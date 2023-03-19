@@ -1,0 +1,21 @@
+error: expected `,`. Route attribute requires 2 arguments. Expecting second argument to be the route path. e.g: #[route(GET, "/some/path")]
+ --> tests/route/invalid_examples/too_few_route_args.rs:5:1
+  |
+5 | #[route(GET)]
+  | ^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `route` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `lambda_http::Error`
+ --> tests/route/invalid_examples/too_few_route_args.rs:2:5
+  |
+2 | use lambda_http::Error;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0601]: `main` function not found in crate `$CRATE`
+ --> tests/route/invalid_examples/too_few_route_args.rs:8:2
+  |
+8 | }
+  |  ^ consider adding a `main` function to `$DIR/tests/route/invalid_examples/too_few_route_args.rs`
