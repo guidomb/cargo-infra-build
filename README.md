@@ -1,3 +1,7 @@
+The idea is that you only need to add the route mappings for web service using the `route` attribute macro to your AWS lambda functions. That's it. `cargo-infra-build` will build, deploy and configure AWS API gateway for you. No need to deal with Terraform, CloudFront, Serverless or any YAML file.
+
+## Example
+
 ```rust
 use http::Response;
 use lambda_http::{run, http::StatusCode, service_fn, Error, IntoResponse, Request, RequestExt};
@@ -24,7 +28,7 @@ pub async fn function_handler(event: Request) -> Result<impl IntoResponse, Error
         .header("Content-Type", "application/json")
         .body(json!({
             "message": "Hello World",
-            "payload": body, 
+            "payload": body,
           }).to_string())
         .map_err(Box::new)?;
 
@@ -38,25 +42,8 @@ pub struct MyPayload {
 }
 ```
 
-then we should do something
+then we should be able to build and deploy
 
 ```bash
-cargo lambda build
-cargo lambda deploy
-# This should parse the route proc macro and configure AWS API Gateway
-cargo infra deploy 
-```
-
-```rust
-let router = Router {
-    routes: [
-        Router {
-            method:HTTPMethod.Get,
-            path: "/some/path/{variable}/foo"
-        }
-    ]
-}
-
-let aws_config = aws_config::load_from_env().await;
-AWSAPIGatewayConfigurer::new(aws_config).configure(router).await;
+cargo infra-builder deploy
 ```

@@ -1,8 +1,60 @@
+use cargo_metadata::CargoOpt;
+use cargo_metadata::Metadata;
+use cargo_metadata::MetadataCommand;
+use cargo_metadata::Package;
+use itertools::Itertools;
+use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use toml::Value;
 use walkdir::WalkDir;
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() != 2 {
+        eprintln!("Usage: {} <path_to_directory>", args[0]);
+        return;
+    }
+
+    let path = &args[1];
+    let crates = find_rust_crates(path);
+    for krate in &crates {
+        println!("{:?}", krate);
+
+        // println!("{}", fs::read_to_string(&krate.cargo_toml_path).unwrap());
+
+        let metadata = MetadataCommand::new()
+            .manifest_path(&krate.cargo_toml_path)
+            .features(CargoOpt::AllFeatures)
+            .exec()
+            .unwrap();
+
+        let dependencies = vec![
+            "lambda_http",
+            "lambda_runtime",
+            "tokio",
+            env!("CARGO_PKG_NAME"),
+        ]; // List of dependencies to check
+        let has_required_info =
+            has_binary_target_and_dependencies(&krate.name, &metadata, &dependencies);
+
+        println!(
+            "Has binary target and required dependencies: {}",
+            has_required_info
+        );
+        println!("");
+
+        // TODO
+        // 1. Parse main.rs
+        // 2. Parse the route attribute from main.rs
+        // 3. Create a Vec<RouteMapping> with parsed routes
+        // 4. Build each crate that has a valid mapping using `cargo lambda build --release --target TARGET_ARCHITECTURE`
+        // 5. Deploy each lambda
+        // 6. Configure AWS API Gateway mapping for each RouteMapping
+    }
+}
 
 #[derive(Debug)]
 pub struct RustCrate {
@@ -11,7 +63,7 @@ pub struct RustCrate {
     pub cargo_toml_path: PathBuf,
 }
 
-pub fn find_rust_crates<P: AsRef<Path>>(path: P) -> Vec<RustCrate> {
+fn find_rust_crates<P: AsRef<Path>>(path: P) -> Vec<RustCrate> {
     let mut rust_crates = vec![];
 
     for entry in WalkDir::new(path)
@@ -41,17 +93,44 @@ pub fn find_rust_crates<P: AsRef<Path>>(path: P) -> Vec<RustCrate> {
     rust_crates
 }
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
+fn has_binary_target_and_dependencies(
+    package_name: &str,
+    metadata: &Metadata,
+    dependencies: &[&str],
+) -> bool {
+    let package = metadata
+        .packages
+        .iter()
+        .find_map(|package| {
+            if package.name.eq(package_name) {
+                Some(package)
+            } else {
+                None
+            }
+        })
+        .unwrap();
 
-    if args.len() != 2 {
-        eprintln!("Usage: {} <path_to_directory>", args[0]);
-        return;
-    }
+    has_binary_target(package) && has_all_dependencies(package, dependencies)
+}
 
-    let path = &args[1];
-    let crates = find_rust_crates(path);
-    for krate in &crates {
-        println!("{:?}", krate);
-    }
+fn has_binary_target(package: &Package) -> bool {
+    package
+        .targets
+        .iter()
+        .any(|target| target.kind.contains(&"bin".to_string()))
+}
+
+fn has_all_dependencies(package: &Package, dependencies: &[&str]) -> bool {
+    let dep_names: HashSet<_> = package
+        .dependencies
+        .iter()
+        .map(|dependency| dependency.name.as_str())
+        .collect();
+
+    println!(
+        "PD:{}  vs D: {}",
+        dep_names.iter().join(","),
+        dependencies.iter().join(",")
+    );
+    dependencies.iter().all(|&dep| dep_names.contains(dep))
 }
