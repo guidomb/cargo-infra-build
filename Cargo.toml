@@ -3,6 +3,18 @@ name = "infra-builder"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
 
 [dependencies]
+syn = "1.0"
+quote = "1.0"
+lambda_http = "0.7.3"
+tokio = { version = "1", features = ["macros"] }
+strum = "0.24"
+strum_macros = "0.24"
+itertools = "0.10"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+trybuild = "1.0"

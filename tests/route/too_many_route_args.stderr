@@ -1,0 +1,21 @@
+error: custom attribute panicked
+ --> tests/route/too_many_route_args.rs:5:1
+  |
+5 | #[route(GET, "/", "FOO")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: route attribute required 2 arguments and 3 where provided. First argument should be an HTTP method and the second one URL path
+
+warning: unused import: `lambda_http::Error`
+ --> tests/route/too_many_route_args.rs:2:5
+  |
+2 | use lambda_http::Error;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0601]: `main` function not found in crate `$CRATE`
+ --> tests/route/too_many_route_args.rs:8:2
+  |
+8 | }
+  |  ^ consider adding a `main` function to `$DIR/tests/route/too_many_route_args.rs`
